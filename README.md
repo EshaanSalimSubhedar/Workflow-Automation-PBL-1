@@ -92,36 +92,7 @@ BPMN is used to represent process behavior, including tasks, events, gateways, a
 
 - `docs/modeling-checklist.md` provides a structured review checklist for the models.
 - `presentation/BPMN_Project_Presentation.pptx` contains the project presentation.
-- `reference/BPMN_Project_Assignments.pdf` contains the supplied assignment brief and rubric.
-
-## Assessment Alignment
-
-The project materials are organized to support review of the following rubric areas described in the assignment brief:
-
-| Assessment area | Marks | Evidence to review |
-|---|---:|---|
-| Happy path | 4 | Normal route through each BPMN process. |
-| Task types | 3 | Use and purpose of task types in the models. |
-| Gateways | 3 | Branching and routing logic. |
-| Failure identification | 4 | Failure scenarios in the process models and registers. |
-| Solutions | 4 | Intended handling, alternate routes, and recovery paths. |
-| Notation/readability | 2 | BPMN notation and diagram clarity. |
-| **Total** | **20** | **Both selected assignments** |
-
-The original assignment brief remains the authoritative source for assessment requirements.
-
-## Validation Status and Scope
-
-The model files have been subject to XML-level checks during preparation. This is not equivalent to confirming that every file opens without errors in Camunda Modeler, that the definitions deploy successfully to a Camunda 8 runtime, or that process instances execute correctly.
-
-At the time of packaging, the following remain unconfirmed:
-
-- Successful opening and rendering of all four files in the target Camunda Modeler installation.
-- Successful deployment of the BPMN and DMN definitions to the target Camunda 8 runtime.
-- End-to-end execution of normal and exception paths.
-- Runtime integration with service-task workers or external systems.
-
-Accordingly, the repository should be understood as an academic workflow-modeling submission and supporting documentation, not as a verified production implementation. Any future validation claims should be based on observed Modeler, deployment, and execution results.
+- `reference/BPMN_Project_Assignments.pdf` contains the supplied assignment brief and rubric
 
 ## References
 

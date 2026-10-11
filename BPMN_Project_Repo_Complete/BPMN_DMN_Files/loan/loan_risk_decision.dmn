@@ -1,0 +1,168 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" id="LoanRiskDMN" name="Loan Risk Decision" namespace="http://camunda.org/schema/1.0/dmn" exporter="OpenAI DMN Generator" exporterVersion="1.0">
+  <decision id="LoanRiskDecision" name="Loan Risk Decision">
+    <decisionTable id="LoanRiskDecision_table" hitPolicy="FIRST">
+      <input id="BI1" label="creditScore">
+        <inputExpression id="BI1_expr" typeRef="number">
+          <text>creditScore</text>
+        </inputExpression>
+      </input>
+      <input id="BI2" label="debtToIncome">
+        <inputExpression id="BI2_expr" typeRef="number">
+          <text>debtToIncome</text>
+        </inputExpression>
+      </input>
+      <input id="BI3" label="fraudFlag">
+        <inputExpression id="BI3_expr" typeRef="boolean">
+          <text>fraudFlag</text>
+        </inputExpression>
+      </input>
+      <input id="BI4" label="requestedAmount">
+        <inputExpression id="BI4_expr" typeRef="number">
+          <text>requestedAmount</text>
+        </inputExpression>
+      </input>
+      <output id="BO1" name="riskRoute" label="riskRoute" typeRef="string"/>
+      <output id="BO2" name="maxApprovedAmount" label="maxApprovedAmount" typeRef="number"/>
+      <output id="BO3" name="reason" label="reason" typeRef="string"/>
+      <rule id="LoanRiskDecision_r1">
+        <inputEntry id="LoanRiskDecision_r1_i1">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r1_i2">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r1_i3">
+          <text>true</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r1_i4">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="LoanRiskDecision_r1_o1">
+          <text>"REJECT"</text>
+        </outputEntry>
+        <outputEntry id="LoanRiskDecision_r1_o2">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="LoanRiskDecision_r1_o3">
+          <text>"Fraud or compliance review required"</text>
+        </outputEntry>
+      </rule>
+      <rule id="LoanRiskDecision_r2">
+        <inputEntry id="LoanRiskDecision_r2_i1">
+          <text>&lt; 560</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r2_i2">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r2_i3">
+          <text>false</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r2_i4">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="LoanRiskDecision_r2_o1">
+          <text>"REJECT"</text>
+        </outputEntry>
+        <outputEntry id="LoanRiskDecision_r2_o2">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="LoanRiskDecision_r2_o3">
+          <text>"Credit score below minimum threshold"</text>
+        </outputEntry>
+      </rule>
+      <rule id="LoanRiskDecision_r3">
+        <inputEntry id="LoanRiskDecision_r3_i1">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r3_i2">
+          <text> &gt; 0.50</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r3_i3">
+          <text>false</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r3_i4">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="LoanRiskDecision_r3_o1">
+          <text>"REJECT"</text>
+        </outputEntry>
+        <outputEntry id="LoanRiskDecision_r3_o2">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="LoanRiskDecision_r3_o3">
+          <text>Debt-to-income ratio exceeds 50 percent</text>
+        </outputEntry>
+      </rule>
+      <rule id="LoanRiskDecision_r4">
+        <inputEntry id="LoanRiskDecision_r4_i1">
+          <text>&gt;= 760</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r4_i2">
+          <text>&lt;= 0.35</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r4_i3">
+          <text>false</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r4_i4">
+          <text>&lt;= 500000</text>
+        </inputEntry>
+        <outputEntry id="LoanRiskDecision_r4_o1">
+          <text>"AUTO_APPROVE"</text>
+        </outputEntry>
+        <outputEntry id="LoanRiskDecision_r4_o2">
+          <text>500000</text>
+        </outputEntry>
+        <outputEntry id="LoanRiskDecision_r4_o3">
+          <text>"Strong credit profile; subject to verification"</text>
+        </outputEntry>
+      </rule>
+      <rule id="LoanRiskDecision_r5">
+        <inputEntry id="LoanRiskDecision_r5_i1">
+          <text>&gt;= 680</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r5_i2">
+          <text>&lt;= 0.40</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r5_i3">
+          <text>false</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r5_i4">
+          <text>&lt;= 250000</text>
+        </inputEntry>
+        <outputEntry id="LoanRiskDecision_r5_o1">
+          <text>"AUTO_APPROVE"</text>
+        </outputEntry>
+        <outputEntry id="LoanRiskDecision_r5_o2">
+          <text>250000</text>
+        </outputEntry>
+        <outputEntry id="LoanRiskDecision_r5_o3">
+          <text>"Meets standard automated approval criteria"</text>
+        </outputEntry>
+      </rule>
+      <rule id="LoanRiskDecision_r6">
+        <inputEntry id="LoanRiskDecision_r6_i1">
+          <text>&gt;= 560</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r6_i2">
+          <text>&lt;= 0.50</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r6_i3">
+          <text>false</text>
+        </inputEntry>
+        <inputEntry id="LoanRiskDecision_r6_i4">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="LoanRiskDecision_r6_o1">
+          <text>"MANUAL_REVIEW"</text>
+        </outputEntry>
+        <outputEntry id="LoanRiskDecision_r6_o2">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="LoanRiskDecision_r6_o3">
+          <text>"Manual underwriting required"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+<dmndi:DMNDI xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:di="http://www.omg.org/spec/DMN/20180521/DI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"><dmndi:DMNDiagram id="loan_risk_decision_diagram" name="Decision Requirements Diagram"><dmndi:DMNShape id="LoanRiskDecision_shape" dmnElementRef="LoanRiskDecision"><dc:Bounds x="160" y="100" width="220" height="80"/></dmndi:DMNShape></dmndi:DMNDiagram></dmndi:DMNDI></definitions>

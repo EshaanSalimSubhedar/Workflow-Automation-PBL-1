@@ -1,0 +1,490 @@
+<?xml version='1.0' encoding='utf-8'?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" id="LogisticsDefinitions" targetNamespace="https://example.com/bpmn/academic" exporter="OpenAI BPMN Generator" exporterVersion="1.0">
+  <bpmn:process id="LogisticsProcess" name="Logistics &amp; Shipment Exception Management" isExecutable="true">
+    <bpmn:laneSet id="LogisticsProcess_lanes">
+      <bpmn:lane id="L_lane_shipper" name="Shipper / Customer">
+        <bpmn:flowNodeRef>L_start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_book</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_correct</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_customs</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_lane_control" name="Control Tower / Dispatcher">
+        <bpmn:flowNodeRef>L_validate</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_valid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_pickup</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_parallel</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_join</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_delay</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_delay_msg</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_delay_timer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_reroute</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_out</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_close</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_delivered</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_cancel</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_lost</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_return</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_outcome</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_refused</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_no_scan</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_trace</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_lost_timer</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_lane_pickup" name="Pickup Agent">
+        <bpmn:flowNodeRef>L_collected</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_scan_error</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_manual</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_reconcile</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_lane_hub" name="Hub / Warehouse">
+        <bpmn:flowNodeRef>L_move</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_track</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_hub</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>L_customs_timer</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_lane_delivery" name="Delivery Agent / Recipient">
+        <bpmn:flowNodeRef>L_deliver</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="L_start" name="Shipment booking received">
+      <bpmn:messageEventDefinition />
+    </bpmn:startEvent>
+    <bpmn:userTask id="L_book" name="Capture shipment details" />
+    <bpmn:businessRuleTask id="L_validate" name="Validate booking and calculate charge">
+      <bpmn:extensionElements>
+        <zeebe:calledDecision decisionId="LogisticsBookingDecision" resultVariable="bookingDecision" bindingType="latest" />
+      </bpmn:extensionElements>
+    </bpmn:businessRuleTask>
+    <bpmn:exclusiveGateway id="L_valid" name="Booking valid?" gatewayDirection="Diverging" />
+    <bpmn:userTask id="L_correct" name="Request address/data correction" />
+    <bpmn:serviceTask id="L_pickup" name="Schedule pickup and assign driver" implementation="##WebService">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="l_pickup" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="L_collected" name="Collect and scan parcel" />
+    <bpmn:parallelGateway id="L_parallel" name="Run transit and tracking in parallel" gatewayDirection="Diverging" />
+    <bpmn:serviceTask id="L_move" name="Move parcel through hubs">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="l_move" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="L_track" name="Update tracking and notify shipper">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="l_track" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:sendTask>
+    <bpmn:parallelGateway id="L_join" name="Both branches complete" gatewayDirection="Converging" />
+    <bpmn:eventBasedGateway id="L_delay" name="Wait for delay or normal arrival" gatewayDirection="Diverging" />
+    <bpmn:intermediateCatchEvent id="L_delay_msg" name="Delay reported">
+      <bpmn:messageEventDefinition />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="L_delay_timer" name="Transit SLA timer">
+      <bpmn:timerEventDefinition />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:serviceTask id="L_reroute" name="Notify customer and reroute">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="l_reroute" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:subProcess id="L_hub" name="Sort, scan and line-haul to destination" />
+    <bpmn:sendTask id="L_out" name="Notify recipient: out for delivery">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="l_out" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:sendTask>
+    <bpmn:userTask id="L_deliver" name="Deliver parcel and capture proof" />
+    <bpmn:exclusiveGateway id="L_outcome" name="Delivery outcome?" gatewayDirection="Diverging" />
+    <bpmn:serviceTask id="L_close" name="Close shipment and invoice">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="l_close" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="L_delivered" name="Shipment delivered" />
+    <bpmn:endEvent id="L_return" name="Returned to sender" />
+    <bpmn:endEvent id="L_cancel" name="Shipment cancelled" />
+    <bpmn:endEvent id="L_lost" name="Shipment declared lost" />
+    <bpmn:userTask id="L_refused" name="Record refusal / COD failure" />
+    <bpmn:boundaryEvent id="L_scan_error" name="Scan system error" attachedToRef="L_collected" cancelActivity="true">
+      <bpmn:errorEventDefinition errorRef="ScanError" />
+    </bpmn:boundaryEvent>
+    <bpmn:userTask id="L_manual" name="Manually correct scan record" />
+    <bpmn:serviceTask id="L_reconcile" name="Reconcile tracking records">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="l_reconcile" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:intermediateCatchEvent id="L_no_scan" name="48-hour no-scan timer">
+      <bpmn:timerEventDefinition />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:subProcess id="L_trace" name="Trace parcel (maximum 5 days)" />
+    <bpmn:intermediateCatchEvent id="L_lost_timer" name="Tracing deadline">
+      <bpmn:timerEventDefinition />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:userTask id="L_customs" name="Request customs documents" />
+    <bpmn:boundaryEvent id="L_customs_timer" name="5-day document deadline" attachedToRef="L_customs" cancelActivity="true">
+      <bpmn:timerEventDefinition />
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="LF1" sourceRef="L_start" targetRef="L_book" />
+    <bpmn:sequenceFlow id="LF2" sourceRef="L_book" targetRef="L_validate" />
+    <bpmn:sequenceFlow id="LF3" sourceRef="L_validate" targetRef="L_valid" />
+    <bpmn:sequenceFlow id="LF4" sourceRef="L_valid" targetRef="L_pickup" name="yes">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= bookingDecision.bookingValid = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="LF5" sourceRef="L_valid" targetRef="L_correct" name="no">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= bookingDecision.bookingValid = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="LF6" sourceRef="L_correct" targetRef="L_validate" name="Resubmit" />
+    <bpmn:sequenceFlow id="LF7" sourceRef="L_pickup" targetRef="L_collected" />
+    <bpmn:sequenceFlow id="LF8" sourceRef="L_collected" targetRef="L_parallel" />
+    <bpmn:sequenceFlow id="LF9" sourceRef="L_parallel" targetRef="L_move" name="movement" />
+    <bpmn:sequenceFlow id="LF10" sourceRef="L_parallel" targetRef="L_track" name="tracking" />
+    <bpmn:sequenceFlow id="LF11" sourceRef="L_move" targetRef="L_join" />
+    <bpmn:sequenceFlow id="LF12" sourceRef="L_track" targetRef="L_join" />
+    <bpmn:sequenceFlow id="LF13" sourceRef="L_join" targetRef="L_delay" />
+    <bpmn:sequenceFlow id="LF14" sourceRef="L_delay" targetRef="L_hub" name="normal arrival" />
+    <bpmn:sequenceFlow id="LF15" sourceRef="L_delay" targetRef="L_delay_msg" name="delay message" />
+    <bpmn:sequenceFlow id="LF16" sourceRef="L_delay" targetRef="L_delay_timer" name="timer" />
+    <bpmn:sequenceFlow id="LF17" sourceRef="L_delay_msg" targetRef="L_reroute" />
+    <bpmn:sequenceFlow id="LF18" sourceRef="L_delay_timer" targetRef="L_reroute" />
+    <bpmn:sequenceFlow id="LF19" sourceRef="L_reroute" targetRef="L_hub" name="Resume transit" />
+    <bpmn:sequenceFlow id="LF20" sourceRef="L_hub" targetRef="L_out" />
+    <bpmn:sequenceFlow id="LF21" sourceRef="L_out" targetRef="L_deliver" />
+    <bpmn:sequenceFlow id="LF22" sourceRef="L_deliver" targetRef="L_outcome" />
+    <bpmn:sequenceFlow id="LF23" sourceRef="L_outcome" targetRef="L_close" name="delivered">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= deliveryOutcome = "DELIVERED"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="LF24" sourceRef="L_close" targetRef="L_delivered" />
+    <bpmn:sequenceFlow id="LF25" sourceRef="L_outcome" targetRef="L_refused" name="refused / COD failed">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= deliveryOutcome = "REFUSED" or deliveryOutcome = "COD_FAILED"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="LF26" sourceRef="L_refused" targetRef="L_return" />
+    <bpmn:sequenceFlow id="LF27" sourceRef="L_outcome" targetRef="L_return" name="recipient unavailable after retries">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= deliveryOutcome = "UNAVAILABLE"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="LF28" sourceRef="L_scan_error" targetRef="L_manual" />
+    <bpmn:sequenceFlow id="LF29" sourceRef="L_manual" targetRef="L_reconcile" />
+    <bpmn:sequenceFlow id="LF30" sourceRef="L_no_scan" targetRef="L_trace" />
+    <bpmn:sequenceFlow id="LF31" sourceRef="L_trace" targetRef="L_lost_timer" />
+    <bpmn:sequenceFlow id="LF32" sourceRef="L_lost_timer" targetRef="L_lost" name="not found within five days" />
+    <bpmn:sequenceFlow id="LF33" sourceRef="L_customs" targetRef="L_customs_timer" name="document deadline" />
+    <bpmn:sequenceFlow id="LF34" sourceRef="L_customs_timer" targetRef="L_return" name="documents not received" />
+  </bpmn:process>
+  <bpmn:error id="ScanError" errorCode="SCAN_SYSTEM_FAILURE" name="Scan system failure" />
+  <bpmndi:BPMNDiagram id="LogisticsDefinitions_diagram">
+    <bpmndi:BPMNPlane id="LogisticsDefinitions_plane" bpmnElement="LogisticsProcess">
+      <bpmndi:BPMNShape id="L_lane_shipper_di" bpmnElement="L_lane_shipper" isHorizontal="true">
+        <dc:Bounds x="40" y="80" width="2900" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_lane_control_di" bpmnElement="L_lane_control" isHorizontal="true">
+        <dc:Bounds x="40" y="260" width="2900" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_lane_pickup_di" bpmnElement="L_lane_pickup" isHorizontal="true">
+        <dc:Bounds x="40" y="440" width="2900" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_lane_hub_di" bpmnElement="L_lane_hub" isHorizontal="true">
+        <dc:Bounds x="40" y="620" width="2900" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_lane_delivery_di" bpmnElement="L_lane_delivery" isHorizontal="true">
+        <dc:Bounds x="40" y="800" width="2900" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_start_di" bpmnElement="L_start">
+        <dc:Bounds x="100" y="125" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_book_di" bpmnElement="L_book">
+        <dc:Bounds x="190" y="113" width="110" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_validate_di" bpmnElement="L_validate">
+        <dc:Bounds x="340" y="113" width="150" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_valid_di" bpmnElement="L_valid">
+        <dc:Bounds x="540" y="123" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_correct_di" bpmnElement="L_correct">
+        <dc:Bounds x="650" y="300" width="145" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_pickup_di" bpmnElement="L_pickup">
+        <dc:Bounds x="650" y="113" width="150" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_collected_di" bpmnElement="L_collected">
+        <dc:Bounds x="850" y="113" width="135" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_parallel_di" bpmnElement="L_parallel">
+        <dc:Bounds x="1030" y="123" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_move_di" bpmnElement="L_move">
+        <dc:Bounds x="1130" y="70" width="145" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_track_di" bpmnElement="L_track">
+        <dc:Bounds x="1130" y="190" width="145" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_join_di" bpmnElement="L_join">
+        <dc:Bounds x="1330" y="123" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_delay_di" bpmnElement="L_delay">
+        <dc:Bounds x="1430" y="123" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_delay_msg_di" bpmnElement="L_delay_msg">
+        <dc:Bounds x="1530" y="270" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_delay_timer_di" bpmnElement="L_delay_timer">
+        <dc:Bounds x="1530" y="345" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_reroute_di" bpmnElement="L_reroute">
+        <dc:Bounds x="1630" y="300" width="145" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_hub_di" bpmnElement="L_hub">
+        <dc:Bounds x="1630" y="113" width="165" height="70" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_out_di" bpmnElement="L_out">
+        <dc:Bounds x="1840" y="113" width="150" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_deliver_di" bpmnElement="L_deliver">
+        <dc:Bounds x="2030" y="113" width="150" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_outcome_di" bpmnElement="L_outcome">
+        <dc:Bounds x="2220" y="123" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_close_di" bpmnElement="L_close">
+        <dc:Bounds x="2320" y="113" width="145" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_delivered_di" bpmnElement="L_delivered">
+        <dc:Bounds x="2500" y="125" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_return_di" bpmnElement="L_return">
+        <dc:Bounds x="2220" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_cancel_di" bpmnElement="L_cancel">
+        <dc:Bounds x="850" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_lost_di" bpmnElement="L_lost">
+        <dc:Bounds x="1840" y="430" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_refused_di" bpmnElement="L_refused">
+        <dc:Bounds x="2320" y="300" width="145" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_scan_error_di" bpmnElement="L_scan_error">
+        <dc:Bounds x="920" y="165" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_manual_di" bpmnElement="L_manual">
+        <dc:Bounds x="1030" y="430" width="150" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_reconcile_di" bpmnElement="L_reconcile">
+        <dc:Bounds x="1220" y="430" width="145" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_no_scan_di" bpmnElement="L_no_scan">
+        <dc:Bounds x="1430" y="430" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_trace_di" bpmnElement="L_trace">
+        <dc:Bounds x="1530" y="430" width="165" height="70" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_lost_timer_di" bpmnElement="L_lost_timer">
+        <dc:Bounds x="1730" y="450" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_customs_di" bpmnElement="L_customs">
+        <dc:Bounds x="1630" y="520" width="155" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_customs_timer_di" bpmnElement="L_customs_timer">
+        <dc:Bounds x="1690" y="575" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="LF1_di" bpmnElement="LF1">
+        <di:waypoint x="136" y="143" />
+        <di:waypoint x="190" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF2_di" bpmnElement="LF2">
+        <di:waypoint x="300" y="143" />
+        <di:waypoint x="340" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF3_di" bpmnElement="LF3">
+        <di:waypoint x="490" y="143" />
+        <di:waypoint x="515" y="143" />
+        <di:waypoint x="515" y="148" />
+        <di:waypoint x="540" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF4_di" bpmnElement="LF4">
+        <di:waypoint x="590" y="148" />
+        <di:waypoint x="620" y="148" />
+        <di:waypoint x="620" y="143" />
+        <di:waypoint x="650" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF5_di" bpmnElement="LF5">
+        <di:waypoint x="590" y="148" />
+        <di:waypoint x="620" y="148" />
+        <di:waypoint x="620" y="330" />
+        <di:waypoint x="650" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF6_di" bpmnElement="LF6">
+        <di:waypoint x="795" y="330" />
+        <di:waypoint x="820" y="330" />
+        <di:waypoint x="820" y="430" />
+        <di:waypoint x="315" y="430" />
+        <di:waypoint x="315" y="143" />
+        <di:waypoint x="340" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF7_di" bpmnElement="LF7">
+        <di:waypoint x="800" y="143" />
+        <di:waypoint x="850" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF8_di" bpmnElement="LF8">
+        <di:waypoint x="985" y="143" />
+        <di:waypoint x="1007" y="143" />
+        <di:waypoint x="1007" y="148" />
+        <di:waypoint x="1030" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF9_di" bpmnElement="LF9">
+        <di:waypoint x="1080" y="148" />
+        <di:waypoint x="1105" y="148" />
+        <di:waypoint x="1105" y="100" />
+        <di:waypoint x="1130" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF10_di" bpmnElement="LF10">
+        <di:waypoint x="1080" y="148" />
+        <di:waypoint x="1105" y="148" />
+        <di:waypoint x="1105" y="220" />
+        <di:waypoint x="1130" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF11_di" bpmnElement="LF11">
+        <di:waypoint x="1275" y="100" />
+        <di:waypoint x="1302" y="100" />
+        <di:waypoint x="1302" y="148" />
+        <di:waypoint x="1330" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF12_di" bpmnElement="LF12">
+        <di:waypoint x="1275" y="220" />
+        <di:waypoint x="1302" y="220" />
+        <di:waypoint x="1302" y="148" />
+        <di:waypoint x="1330" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF13_di" bpmnElement="LF13">
+        <di:waypoint x="1380" y="148" />
+        <di:waypoint x="1430" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF14_di" bpmnElement="LF14">
+        <di:waypoint x="1480" y="148" />
+        <di:waypoint x="1630" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF15_di" bpmnElement="LF15">
+        <di:waypoint x="1480" y="148" />
+        <di:waypoint x="1505" y="148" />
+        <di:waypoint x="1505" y="288" />
+        <di:waypoint x="1530" y="288" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF16_di" bpmnElement="LF16">
+        <di:waypoint x="1480" y="148" />
+        <di:waypoint x="1505" y="148" />
+        <di:waypoint x="1505" y="363" />
+        <di:waypoint x="1530" y="363" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF17_di" bpmnElement="LF17">
+        <di:waypoint x="1566" y="288" />
+        <di:waypoint x="1598" y="288" />
+        <di:waypoint x="1598" y="330" />
+        <di:waypoint x="1630" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF18_di" bpmnElement="LF18">
+        <di:waypoint x="1566" y="363" />
+        <di:waypoint x="1598" y="363" />
+        <di:waypoint x="1598" y="330" />
+        <di:waypoint x="1630" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF19_di" bpmnElement="LF19">
+        <di:waypoint x="1775" y="330" />
+        <di:waypoint x="1800" y="330" />
+        <di:waypoint x="1800" y="430" />
+        <di:waypoint x="1605" y="430" />
+        <di:waypoint x="1605" y="148" />
+        <di:waypoint x="1630" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF20_di" bpmnElement="LF20">
+        <di:waypoint x="1795" y="148" />
+        <di:waypoint x="1817" y="148" />
+        <di:waypoint x="1817" y="143" />
+        <di:waypoint x="1840" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF21_di" bpmnElement="LF21">
+        <di:waypoint x="1990" y="143" />
+        <di:waypoint x="2030" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF22_di" bpmnElement="LF22">
+        <di:waypoint x="2180" y="143" />
+        <di:waypoint x="2200" y="143" />
+        <di:waypoint x="2200" y="148" />
+        <di:waypoint x="2220" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF23_di" bpmnElement="LF23">
+        <di:waypoint x="2270" y="148" />
+        <di:waypoint x="2295" y="148" />
+        <di:waypoint x="2295" y="143" />
+        <di:waypoint x="2320" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF24_di" bpmnElement="LF24">
+        <di:waypoint x="2465" y="143" />
+        <di:waypoint x="2500" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF25_di" bpmnElement="LF25">
+        <di:waypoint x="2270" y="148" />
+        <di:waypoint x="2295" y="148" />
+        <di:waypoint x="2295" y="330" />
+        <di:waypoint x="2320" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF26_di" bpmnElement="LF26">
+        <di:waypoint x="2465" y="330" />
+        <di:waypoint x="2490" y="330" />
+        <di:waypoint x="2490" y="456" />
+        <di:waypoint x="2195" y="456" />
+        <di:waypoint x="2195" y="368" />
+        <di:waypoint x="2220" y="368" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF27_di" bpmnElement="LF27">
+        <di:waypoint x="2270" y="148" />
+        <di:waypoint x="2295" y="148" />
+        <di:waypoint x="2295" y="456" />
+        <di:waypoint x="2195" y="456" />
+        <di:waypoint x="2195" y="368" />
+        <di:waypoint x="2220" y="368" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF28_di" bpmnElement="LF28">
+        <di:waypoint x="956" y="183" />
+        <di:waypoint x="993" y="183" />
+        <di:waypoint x="993" y="460" />
+        <di:waypoint x="1030" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF29_di" bpmnElement="LF29">
+        <di:waypoint x="1180" y="460" />
+        <di:waypoint x="1220" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF30_di" bpmnElement="LF30">
+        <di:waypoint x="1466" y="448" />
+        <di:waypoint x="1498" y="448" />
+        <di:waypoint x="1498" y="465" />
+        <di:waypoint x="1530" y="465" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF31_di" bpmnElement="LF31">
+        <di:waypoint x="1695" y="465" />
+        <di:waypoint x="1712" y="465" />
+        <di:waypoint x="1712" y="468" />
+        <di:waypoint x="1730" y="468" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF32_di" bpmnElement="LF32">
+        <di:waypoint x="1766" y="468" />
+        <di:waypoint x="1803" y="468" />
+        <di:waypoint x="1803" y="448" />
+        <di:waypoint x="1840" y="448" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF33_di" bpmnElement="LF33">
+        <di:waypoint x="1785" y="550" />
+        <di:waypoint x="1810" y="550" />
+        <di:waypoint x="1810" y="681" />
+        <di:waypoint x="1665" y="681" />
+        <di:waypoint x="1665" y="593" />
+        <di:waypoint x="1690" y="593" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="LF34_di" bpmnElement="LF34">
+        <di:waypoint x="1726" y="593" />
+        <di:waypoint x="1973" y="593" />
+        <di:waypoint x="1973" y="368" />
+        <di:waypoint x="2220" y="368" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,191 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" id="LogisticsDMN" name="Logistics Booking Decision" namespace="http://camunda.org/schema/1.0/dmn" exporter="OpenAI DMN Generator" exporterVersion="1.0">
+  <decision id="LogisticsBookingDecision" name="Logistics Booking Decision">
+    <decisionTable id="LogisticsBookingDecision_table" hitPolicy="FIRST">
+      <input id="LI1" label="addressValid">
+        <inputExpression id="LI1_expr" typeRef="boolean">
+          <text>addressValid</text>
+        </inputExpression>
+      </input>
+      <input id="LI2" label="weightKg">
+        <inputExpression id="LI2_expr" typeRef="number">
+          <text>weightKg</text>
+        </inputExpression>
+      </input>
+      <input id="LI3" label="serviceLevel">
+        <inputExpression id="LI3_expr" typeRef="string">
+          <text>serviceLevel</text>
+        </inputExpression>
+      </input>
+      <input id="LI4" label="remoteArea">
+        <inputExpression id="LI4_expr" typeRef="boolean">
+          <text>remoteArea</text>
+        </inputExpression>
+      </input>
+      <output id="LO1" name="bookingValid" label="bookingValid" typeRef="boolean"/>
+      <output id="LO2" name="surcharge" label="surcharge" typeRef="number"/>
+      <output id="LO3" name="decisionMessage" label="decisionMessage" typeRef="string"/>
+      <rule id="LogisticsBookingDecision_r1">
+        <inputEntry id="LogisticsBookingDecision_r1_i1">
+          <text>false</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r1_i2">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r1_i3">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r1_i4">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="LogisticsBookingDecision_r1_o1">
+          <text>false</text>
+        </outputEntry>
+        <outputEntry id="LogisticsBookingDecision_r1_o2">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="LogisticsBookingDecision_r1_o3">
+          <text>"Correct the address before booking"</text>
+        </outputEntry>
+      </rule>
+      <rule id="LogisticsBookingDecision_r2">
+        <inputEntry id="LogisticsBookingDecision_r2_i1">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r2_i2">
+          <text>&lt; 0</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r2_i3">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r2_i4">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="LogisticsBookingDecision_r2_o1">
+          <text>false</text>
+        </outputEntry>
+        <outputEntry id="LogisticsBookingDecision_r2_o2">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="LogisticsBookingDecision_r2_o3">
+          <text>"Weight must be positive"</text>
+        </outputEntry>
+      </rule>
+      <rule id="LogisticsBookingDecision_r3">
+        <inputEntry id="LogisticsBookingDecision_r3_i1">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r3_i2">
+          <text>&lt;= 30</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r3_i3">
+          <text>"EXPRESS"</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r3_i4">
+          <text>true</text>
+        </inputEntry>
+        <outputEntry id="LogisticsBookingDecision_r3_o1">
+          <text>true</text>
+        </outputEntry>
+        <outputEntry id="LogisticsBookingDecision_r3_o2">
+          <text>150</text>
+        </outputEntry>
+        <outputEntry id="LogisticsBookingDecision_r3_o3">
+          <text>Valid booking; remote-area express surcharge</text>
+        </outputEntry>
+      </rule>
+      <rule id="LogisticsBookingDecision_r4">
+        <inputEntry id="LogisticsBookingDecision_r4_i1">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r4_i2">
+          <text>&lt;= 30</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r4_i3">
+          <text>"EXPRESS"</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r4_i4">
+          <text>false</text>
+        </inputEntry>
+        <outputEntry id="LogisticsBookingDecision_r4_o1">
+          <text>true</text>
+        </outputEntry>
+        <outputEntry id="LogisticsBookingDecision_r4_o2">
+          <text>100</text>
+        </outputEntry>
+        <outputEntry id="LogisticsBookingDecision_r4_o3">
+          <text>"Valid express booking"</text>
+        </outputEntry>
+      </rule>
+      <rule id="LogisticsBookingDecision_r5">
+        <inputEntry id="LogisticsBookingDecision_r5_i1">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r5_i2">
+          <text>&lt;= 30</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r5_i3">
+          <text>"STANDARD"</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r5_i4">
+          <text>true</text>
+        </inputEntry>
+        <outputEntry id="LogisticsBookingDecision_r5_o1">
+          <text>true</text>
+        </outputEntry>
+        <outputEntry id="LogisticsBookingDecision_r5_o2">
+          <text>75</text>
+        </outputEntry>
+        <outputEntry id="LogisticsBookingDecision_r5_o3">
+          <text>Valid booking; remote-area surcharge</text>
+        </outputEntry>
+      </rule>
+      <rule id="LogisticsBookingDecision_r6">
+        <inputEntry id="LogisticsBookingDecision_r6_i1">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r6_i2">
+          <text>&lt;= 30</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r6_i3">
+          <text>"STANDARD"</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r6_i4">
+          <text>false</text>
+        </inputEntry>
+        <outputEntry id="LogisticsBookingDecision_r6_o1">
+          <text>true</text>
+        </outputEntry>
+        <outputEntry id="LogisticsBookingDecision_r6_o2">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="LogisticsBookingDecision_r6_o3">
+          <text>"Valid standard booking"</text>
+        </outputEntry>
+      </rule>
+      <rule id="LogisticsBookingDecision_r7">
+        <inputEntry id="LogisticsBookingDecision_r7_i1">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r7_i2">
+          <text> &gt; 30</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r7_i3">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="LogisticsBookingDecision_r7_i4">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="LogisticsBookingDecision_r7_o1">
+          <text>false</text>
+        </outputEntry>
+        <outputEntry id="LogisticsBookingDecision_r7_o2">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="LogisticsBookingDecision_r7_o3">
+          <text>"Parcel exceeds the 30 kg service limit"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+<dmndi:DMNDI xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:di="http://www.omg.org/spec/DMN/20180521/DI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"><dmndi:DMNDiagram id="logistics_booking_decision_diagram" name="Decision Requirements Diagram"><dmndi:DMNShape id="LogisticsBookingDecision_shape" dmnElementRef="LogisticsBookingDecision"><dc:Bounds x="160" y="100" width="220" height="80"/></dmndi:DMNShape></dmndi:DMNDiagram></dmndi:DMNDI></definitions>

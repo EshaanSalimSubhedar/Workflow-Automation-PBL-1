@@ -1,0 +1,538 @@
+<?xml version='1.0' encoding='utf-8'?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" id="LoanDefinitions" targetNamespace="https://example.com/bpmn/academic" exporter="OpenAI BPMN Generator" exporterVersion="1.0">
+  <bpmn:process id="LoanProcess" name="Loan Origination &amp; Approval System" isExecutable="true">
+    <bpmn:laneSet id="LoanProcess_lanes">
+      <bpmn:lane id="B_lane_applicant" name="Applicant">
+        <bpmn:flowNodeRef>B_start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_submit</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_request</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_doc_wait</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_wait_accept</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_expiry</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_esign</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_withdraw</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_withdraw_end</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_expired</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_lapsed</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="B_lane_officer" name="Loan Officer">
+        <bpmn:flowNodeRef>B_docs</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_doc_ok</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_kyc</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_bureau</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_income</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_bureau_error</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_retry</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_manual_credit</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_risk</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_route</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_fraud</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_fraud_end</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_reject</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="B_lane_underwriter" name="Underwriter / Credit Committee">
+        <bpmn:flowNodeRef>B_manual</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_auto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_approve_join</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_offer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_send</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="B_lane_ops" name="Operations / Core Banking">
+        <bpmn:flowNodeRef>B_verify</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_disburse</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_disb_error</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_disb_retry</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_hold</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_compensate</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_success</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="B_start" name="Application received">
+      <bpmn:messageEventDefinition />
+    </bpmn:startEvent>
+    <bpmn:userTask id="B_submit" name="Capture application and documents" />
+    <bpmn:businessRuleTask id="B_docs" name="Check document completeness" />
+    <bpmn:exclusiveGateway id="B_doc_ok" name="Documents complete?" gatewayDirection="Diverging" />
+    <bpmn:sendTask id="B_request" name="Request missing documents">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="b_request" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:sendTask>
+    <bpmn:intermediateCatchEvent id="B_doc_wait" name="Wait up to 7 days">
+      <bpmn:timerEventDefinition />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="B_lapsed" name="Application lapsed" />
+    <bpmn:parallelGateway id="B_parallel" name="Run verification checks" gatewayDirection="Diverging" />
+    <bpmn:serviceTask id="B_kyc" name="Verify identity (KYC)">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="b_kyc" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="B_bureau" name="Retrieve credit bureau score">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="b_bureau" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="B_income" name="Verify income and employment" />
+    <bpmn:parallelGateway id="B_join" name="Required checks complete" gatewayDirection="Converging" />
+    <bpmn:businessRuleTask id="B_risk" name="Calculate eligibility and risk">
+      <bpmn:extensionElements>
+        <zeebe:calledDecision decisionId="LoanRiskDecision" resultVariable="riskDecision" bindingType="latest" />
+      </bpmn:extensionElements>
+    </bpmn:businessRuleTask>
+    <bpmn:exclusiveGateway id="B_route" name="Risk route?" gatewayDirection="Diverging" />
+    <bpmn:serviceTask id="B_auto" name="Record automated approval">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="b_auto" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="B_manual" name="Underwriter review" />
+    <bpmn:endEvent id="B_reject" name="Application rejected" />
+    <bpmn:exclusiveGateway id="B_approve_join" name="Approval confirmed" gatewayDirection="Converging" />
+    <bpmn:serviceTask id="B_offer" name="Generate loan offer">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="b_offer" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="B_send" name="Send offer to applicant">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="b_send" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:sendTask>
+    <bpmn:receiveTask id="B_wait_accept" name="Wait for applicant acceptance" />
+    <bpmn:boundaryEvent id="B_expiry" name="Offer expiry timer" attachedToRef="B_wait_accept" cancelActivity="true">
+      <bpmn:timerEventDefinition />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="B_expired" name="Offer expired" />
+    <bpmn:userTask id="B_esign" name="Complete e-signature" />
+    <bpmn:serviceTask id="B_verify" name="Verify receiving account">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="b_verify" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="B_disburse" name="Disburse funds and create account">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="b_disburse" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="B_success" name="Loan disbursed" />
+    <bpmn:boundaryEvent id="B_bureau_error" name="Bureau API error" attachedToRef="B_bureau" cancelActivity="true">
+      <bpmn:errorEventDefinition errorRef="BureauError" />
+    </bpmn:boundaryEvent>
+    <bpmn:serviceTask id="B_retry" name="Retry bureau call (max 3)">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="b_retry" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="B_manual_credit" name="Manual credit check" />
+    <bpmn:intermediateThrowEvent id="B_fraud" name="Escalate fraud / AML flag">
+      <bpmn:escalationEventDefinition escalationRef="FraudEscalation" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="B_fraud_end" name="Rejected after confirmed fraud" />
+    <bpmn:intermediateCatchEvent id="B_withdraw" name="Applicant withdrawal message">
+      <bpmn:messageEventDefinition />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="B_withdraw_end" name="Withdrawn" />
+    <bpmn:boundaryEvent id="B_disb_error" name="Disbursement error" attachedToRef="B_disburse" cancelActivity="true">
+      <bpmn:errorEventDefinition errorRef="DisbursementError" />
+    </bpmn:boundaryEvent>
+    <bpmn:serviceTask id="B_disb_retry" name="Verify and retry disbursement">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="b_disb_retry" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="B_hold" name="Hold funds and contact applicant" />
+    <bpmn:serviceTask id="B_compensate" name="Reverse account creation if needed">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="b_compensate" retries="3" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="BF1" sourceRef="B_start" targetRef="B_submit" />
+    <bpmn:sequenceFlow id="BF2" sourceRef="B_submit" targetRef="B_docs" />
+    <bpmn:sequenceFlow id="BF3" sourceRef="B_docs" targetRef="B_doc_ok" />
+    <bpmn:sequenceFlow id="BF4" sourceRef="B_doc_ok" targetRef="B_parallel" name="yes">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= documentsComplete = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="BF5" sourceRef="B_doc_ok" targetRef="B_request" name="no">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= documentsComplete = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="BF6" sourceRef="B_request" targetRef="B_doc_wait" />
+    <bpmn:sequenceFlow id="BF7" sourceRef="B_doc_wait" targetRef="B_lapsed" name="timeout" />
+    <bpmn:sequenceFlow id="BF8" sourceRef="B_parallel" targetRef="B_kyc" name="KYC" />
+    <bpmn:sequenceFlow id="BF9" sourceRef="B_parallel" targetRef="B_bureau" name="credit bureau" />
+    <bpmn:sequenceFlow id="BF10" sourceRef="B_parallel" targetRef="B_income" name="income" />
+    <bpmn:sequenceFlow id="BF11" sourceRef="B_kyc" targetRef="B_join" />
+    <bpmn:sequenceFlow id="BF12" sourceRef="B_bureau" targetRef="B_join" />
+    <bpmn:sequenceFlow id="BF13" sourceRef="B_income" targetRef="B_join" />
+    <bpmn:sequenceFlow id="BF14" sourceRef="B_join" targetRef="B_risk" />
+    <bpmn:sequenceFlow id="BF15" sourceRef="B_risk" targetRef="B_route" />
+    <bpmn:sequenceFlow id="BF16" sourceRef="B_route" targetRef="B_auto" name="auto approve">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= riskDecision.riskRoute = "AUTO_APPROVE"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="BF17" sourceRef="B_route" targetRef="B_manual" name="manual review">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= riskDecision.riskRoute = "MANUAL_REVIEW"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="BF18" sourceRef="B_route" targetRef="B_reject" name="reject">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= riskDecision.riskRoute = "REJECT"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="BF19" sourceRef="B_auto" targetRef="B_approve_join" />
+    <bpmn:sequenceFlow id="BF20" sourceRef="B_manual" targetRef="B_approve_join" name="approved">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= underwriterApproved = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="BF21" sourceRef="B_approve_join" targetRef="B_offer" />
+    <bpmn:sequenceFlow id="BF22" sourceRef="B_offer" targetRef="B_send" />
+    <bpmn:sequenceFlow id="BF23" sourceRef="B_send" targetRef="B_wait_accept" />
+    <bpmn:sequenceFlow id="BF24" sourceRef="B_wait_accept" targetRef="B_esign" name="accepted">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= offerAccepted = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="BF25" sourceRef="B_expiry" targetRef="B_expired" />
+    <bpmn:sequenceFlow id="BF26" sourceRef="B_esign" targetRef="B_verify" />
+    <bpmn:sequenceFlow id="BF27" sourceRef="B_verify" targetRef="B_disburse" />
+    <bpmn:sequenceFlow id="BF28" sourceRef="B_disburse" targetRef="B_success" />
+    <bpmn:sequenceFlow id="BF29" sourceRef="B_bureau_error" targetRef="B_retry" />
+    <bpmn:sequenceFlow id="BF30" sourceRef="B_retry" targetRef="B_manual_credit" name="retries exhausted" />
+    <bpmn:sequenceFlow id="BF31" sourceRef="B_manual_credit" targetRef="B_join" />
+    <bpmn:sequenceFlow id="BF32" sourceRef="B_fraud" targetRef="B_fraud_end" />
+    <bpmn:sequenceFlow id="BF33" sourceRef="B_withdraw" targetRef="B_withdraw_end" />
+    <bpmn:sequenceFlow id="BF34" sourceRef="B_disb_error" targetRef="B_disb_retry" />
+    <bpmn:sequenceFlow id="BF35" sourceRef="B_disb_retry" targetRef="B_hold" name="failure persists" />
+    <bpmn:sequenceFlow id="BF36" sourceRef="B_hold" targetRef="B_compensate" />
+  </bpmn:process>
+  <bpmn:error id="BureauError" errorCode="CREDIT_BUREAU_UNAVAILABLE" name="Credit bureau unavailable" />
+  <bpmn:error id="DisbursementError" errorCode="DISBURSEMENT_FAILED" name="Disbursement failed" />
+  <bpmn:escalation id="FraudEscalation" escalationCode="FRAUD_REVIEW" name="Fraud / AML investigation" />
+  <bpmndi:BPMNDiagram id="LoanDefinitions_diagram">
+    <bpmndi:BPMNPlane id="LoanDefinitions_plane" bpmnElement="LoanProcess">
+      <bpmndi:BPMNShape id="B_lane_applicant_di" bpmnElement="B_lane_applicant" isHorizontal="true">
+        <dc:Bounds x="40" y="80" width="2900" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_lane_officer_di" bpmnElement="B_lane_officer" isHorizontal="true">
+        <dc:Bounds x="40" y="260" width="2900" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_lane_underwriter_di" bpmnElement="B_lane_underwriter" isHorizontal="true">
+        <dc:Bounds x="40" y="440" width="2900" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_lane_ops_di" bpmnElement="B_lane_ops" isHorizontal="true">
+        <dc:Bounds x="40" y="620" width="2900" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_start_di" bpmnElement="B_start">
+        <dc:Bounds x="100" y="125" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_submit_di" bpmnElement="B_submit">
+        <dc:Bounds x="190" y="113" width="150" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_docs_di" bpmnElement="B_docs">
+        <dc:Bounds x="380" y="113" width="155" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_doc_ok_di" bpmnElement="B_doc_ok">
+        <dc:Bounds x="580" y="123" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_request_di" bpmnElement="B_request">
+        <dc:Bounds x="680" y="300" width="150" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_doc_wait_di" bpmnElement="B_doc_wait">
+        <dc:Bounds x="870" y="310" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_lapsed_di" bpmnElement="B_lapsed">
+        <dc:Bounds x="950" y="410" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_parallel_di" bpmnElement="B_parallel">
+        <dc:Bounds x="680" y="123" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_kyc_di" bpmnElement="B_kyc">
+        <dc:Bounds x="790" y="60" width="145" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_bureau_di" bpmnElement="B_bureau">
+        <dc:Bounds x="790" y="150" width="155" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_income_di" bpmnElement="B_income">
+        <dc:Bounds x="790" y="240" width="155" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_join_di" bpmnElement="B_join">
+        <dc:Bounds x="990" y="123" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_risk_di" bpmnElement="B_risk">
+        <dc:Bounds x="1090" y="113" width="160" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_route_di" bpmnElement="B_route">
+        <dc:Bounds x="1300" y="123" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_auto_di" bpmnElement="B_auto">
+        <dc:Bounds x="1400" y="55" width="150" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_manual_di" bpmnElement="B_manual">
+        <dc:Bounds x="1400" y="145" width="150" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_reject_di" bpmnElement="B_reject">
+        <dc:Bounds x="1400" y="280" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_approve_join_di" bpmnElement="B_approve_join">
+        <dc:Bounds x="1600" y="123" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_offer_di" bpmnElement="B_offer">
+        <dc:Bounds x="1700" y="113" width="145" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_send_di" bpmnElement="B_send">
+        <dc:Bounds x="1880" y="113" width="145" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_wait_accept_di" bpmnElement="B_wait_accept">
+        <dc:Bounds x="2060" y="113" width="165" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_expiry_di" bpmnElement="B_expiry">
+        <dc:Bounds x="2125" y="165" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_expired_di" bpmnElement="B_expired">
+        <dc:Bounds x="2200" y="300" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_esign_di" bpmnElement="B_esign">
+        <dc:Bounds x="2260" y="113" width="145" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_verify_di" bpmnElement="B_verify">
+        <dc:Bounds x="2440" y="113" width="145" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_disburse_di" bpmnElement="B_disburse">
+        <dc:Bounds x="2620" y="113" width="165" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_success_di" bpmnElement="B_success">
+        <dc:Bounds x="2820" y="125" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_bureau_error_di" bpmnElement="B_bureau_error">
+        <dc:Bounds x="850" y="205" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_retry_di" bpmnElement="B_retry">
+        <dc:Bounds x="920" y="500" width="155" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_manual_credit_di" bpmnElement="B_manual_credit">
+        <dc:Bounds x="1120" y="500" width="145" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_fraud_di" bpmnElement="B_fraud">
+        <dc:Bounds x="1280" y="500" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_fraud_end_di" bpmnElement="B_fraud_end">
+        <dc:Bounds x="1370" y="590" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_withdraw_di" bpmnElement="B_withdraw">
+        <dc:Bounds x="1700" y="500" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_withdraw_end_di" bpmnElement="B_withdraw_end">
+        <dc:Bounds x="1800" y="590" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_disb_error_di" bpmnElement="B_disb_error">
+        <dc:Bounds x="2690" y="175" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_disb_retry_di" bpmnElement="B_disb_retry">
+        <dc:Bounds x="2670" y="400" width="165" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_hold_di" bpmnElement="B_hold">
+        <dc:Bounds x="2460" y="500" width="165" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_compensate_di" bpmnElement="B_compensate">
+        <dc:Bounds x="2250" y="590" width="175" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BF1_di" bpmnElement="BF1">
+        <di:waypoint x="136" y="143" />
+        <di:waypoint x="190" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF2_di" bpmnElement="BF2">
+        <di:waypoint x="340" y="143" />
+        <di:waypoint x="380" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF3_di" bpmnElement="BF3">
+        <di:waypoint x="535" y="143" />
+        <di:waypoint x="557" y="143" />
+        <di:waypoint x="557" y="148" />
+        <di:waypoint x="580" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF4_di" bpmnElement="BF4">
+        <di:waypoint x="630" y="148" />
+        <di:waypoint x="680" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF5_di" bpmnElement="BF5">
+        <di:waypoint x="630" y="148" />
+        <di:waypoint x="655" y="148" />
+        <di:waypoint x="655" y="330" />
+        <di:waypoint x="680" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF6_di" bpmnElement="BF6">
+        <di:waypoint x="830" y="330" />
+        <di:waypoint x="850" y="330" />
+        <di:waypoint x="850" y="328" />
+        <di:waypoint x="870" y="328" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF7_di" bpmnElement="BF7">
+        <di:waypoint x="906" y="328" />
+        <di:waypoint x="928" y="328" />
+        <di:waypoint x="928" y="428" />
+        <di:waypoint x="950" y="428" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF8_di" bpmnElement="BF8">
+        <di:waypoint x="730" y="148" />
+        <di:waypoint x="760" y="148" />
+        <di:waypoint x="760" y="90" />
+        <di:waypoint x="790" y="90" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF9_di" bpmnElement="BF9">
+        <di:waypoint x="730" y="148" />
+        <di:waypoint x="760" y="148" />
+        <di:waypoint x="760" y="180" />
+        <di:waypoint x="790" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF10_di" bpmnElement="BF10">
+        <di:waypoint x="730" y="148" />
+        <di:waypoint x="760" y="148" />
+        <di:waypoint x="760" y="270" />
+        <di:waypoint x="790" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF11_di" bpmnElement="BF11">
+        <di:waypoint x="935" y="90" />
+        <di:waypoint x="962" y="90" />
+        <di:waypoint x="962" y="148" />
+        <di:waypoint x="990" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF12_di" bpmnElement="BF12">
+        <di:waypoint x="945" y="180" />
+        <di:waypoint x="967" y="180" />
+        <di:waypoint x="967" y="148" />
+        <di:waypoint x="990" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF13_di" bpmnElement="BF13">
+        <di:waypoint x="945" y="270" />
+        <di:waypoint x="967" y="270" />
+        <di:waypoint x="967" y="148" />
+        <di:waypoint x="990" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF14_di" bpmnElement="BF14">
+        <di:waypoint x="1040" y="148" />
+        <di:waypoint x="1065" y="148" />
+        <di:waypoint x="1065" y="143" />
+        <di:waypoint x="1090" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF15_di" bpmnElement="BF15">
+        <di:waypoint x="1250" y="143" />
+        <di:waypoint x="1275" y="143" />
+        <di:waypoint x="1275" y="148" />
+        <di:waypoint x="1300" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF16_di" bpmnElement="BF16">
+        <di:waypoint x="1350" y="148" />
+        <di:waypoint x="1375" y="148" />
+        <di:waypoint x="1375" y="85" />
+        <di:waypoint x="1400" y="85" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF17_di" bpmnElement="BF17">
+        <di:waypoint x="1350" y="148" />
+        <di:waypoint x="1375" y="148" />
+        <di:waypoint x="1375" y="175" />
+        <di:waypoint x="1400" y="175" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF18_di" bpmnElement="BF18">
+        <di:waypoint x="1350" y="148" />
+        <di:waypoint x="1375" y="148" />
+        <di:waypoint x="1375" y="298" />
+        <di:waypoint x="1400" y="298" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF19_di" bpmnElement="BF19">
+        <di:waypoint x="1550" y="85" />
+        <di:waypoint x="1575" y="85" />
+        <di:waypoint x="1575" y="148" />
+        <di:waypoint x="1600" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF20_di" bpmnElement="BF20">
+        <di:waypoint x="1550" y="175" />
+        <di:waypoint x="1575" y="175" />
+        <di:waypoint x="1575" y="148" />
+        <di:waypoint x="1600" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF21_di" bpmnElement="BF21">
+        <di:waypoint x="1650" y="148" />
+        <di:waypoint x="1675" y="148" />
+        <di:waypoint x="1675" y="143" />
+        <di:waypoint x="1700" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF22_di" bpmnElement="BF22">
+        <di:waypoint x="1845" y="143" />
+        <di:waypoint x="1880" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF23_di" bpmnElement="BF23">
+        <di:waypoint x="2025" y="143" />
+        <di:waypoint x="2060" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF24_di" bpmnElement="BF24">
+        <di:waypoint x="2225" y="143" />
+        <di:waypoint x="2260" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF25_di" bpmnElement="BF25">
+        <di:waypoint x="2161" y="183" />
+        <di:waypoint x="2180" y="183" />
+        <di:waypoint x="2180" y="318" />
+        <di:waypoint x="2200" y="318" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF26_di" bpmnElement="BF26">
+        <di:waypoint x="2405" y="143" />
+        <di:waypoint x="2440" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF27_di" bpmnElement="BF27">
+        <di:waypoint x="2585" y="143" />
+        <di:waypoint x="2620" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF28_di" bpmnElement="BF28">
+        <di:waypoint x="2785" y="143" />
+        <di:waypoint x="2820" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF29_di" bpmnElement="BF29">
+        <di:waypoint x="886" y="223" />
+        <di:waypoint x="903" y="223" />
+        <di:waypoint x="903" y="530" />
+        <di:waypoint x="920" y="530" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF30_di" bpmnElement="BF30">
+        <di:waypoint x="1075" y="530" />
+        <di:waypoint x="1120" y="530" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF31_di" bpmnElement="BF31">
+        <di:waypoint x="1265" y="530" />
+        <di:waypoint x="1290" y="530" />
+        <di:waypoint x="1290" y="630" />
+        <di:waypoint x="965" y="630" />
+        <di:waypoint x="965" y="148" />
+        <di:waypoint x="990" y="148" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF32_di" bpmnElement="BF32">
+        <di:waypoint x="1316" y="518" />
+        <di:waypoint x="1343" y="518" />
+        <di:waypoint x="1343" y="608" />
+        <di:waypoint x="1370" y="608" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF33_di" bpmnElement="BF33">
+        <di:waypoint x="1736" y="518" />
+        <di:waypoint x="1768" y="518" />
+        <di:waypoint x="1768" y="608" />
+        <di:waypoint x="1800" y="608" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF34_di" bpmnElement="BF34">
+        <di:waypoint x="2726" y="193" />
+        <di:waypoint x="2751" y="193" />
+        <di:waypoint x="2751" y="530" />
+        <di:waypoint x="2645" y="530" />
+        <di:waypoint x="2645" y="430" />
+        <di:waypoint x="2670" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF35_di" bpmnElement="BF35">
+        <di:waypoint x="2835" y="430" />
+        <di:waypoint x="2860" y="430" />
+        <di:waypoint x="2860" y="630" />
+        <di:waypoint x="2435" y="630" />
+        <di:waypoint x="2435" y="530" />
+        <di:waypoint x="2460" y="530" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BF36_di" bpmnElement="BF36">
+        <di:waypoint x="2625" y="530" />
+        <di:waypoint x="2650" y="530" />
+        <di:waypoint x="2650" y="720" />
+        <di:waypoint x="2225" y="720" />
+        <di:waypoint x="2225" y="620" />
+        <di:waypoint x="2250" y="620" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

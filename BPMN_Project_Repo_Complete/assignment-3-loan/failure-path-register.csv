@@ -1,0 +1,13 @@
+ID,Failure point,Cause / trigger,Resolution and BPMN construct
+L1,Document check,Incomplete/illegible documents,Request missing items; 7-day timer; resubmit or Application Lapsed
+L2,KYC verification,Identity mismatch,Exclusive gateway to manual verification; unresolved mismatch means reason-coded rejection
+L3,Fraud/AML screening,"Forged documents, AML/sanctions hit",Escalate to investigation; confirmed issue means reject and record report
+L4,Credit bureau call,API timeout/bureau down,Error boundary; retry 3 times; manual check or park with timer
+L5,Credit score/risk,Score below cutoff,Exclusive gateway to reject or counter-offer with guarantor/collateral/reduced amount
+L6,Income/DTI,Insufficient income or high DTI,Adjust amount/tenure and rescore once; otherwise reject
+L7,High-value/borderline case,Beyond authority or borderline score,Escalate to senior committee with SLA timer; inclusive gateway adds policy checks
+L8,Collateral valuation,Low valuation or title issue,Revalue/reduce amount/re-underwrite; reject if title remains unclear
+L9,Offer acceptance,No response within offer validity,Timer boundary event; end as Offer Expired
+L10,Withdrawal,Applicant cancels at any stage,Message boundary event; reverse applicable fees/release holds; end as Withdrawn
+L11,E-signature,Unsigned agreement/signature mismatch,Resend/remind; after 2 failed attempts cancel offer and notify
+L12,Disbursement,Invalid account or gateway error,Verify and retry; hold funds/contact applicant; reverse account creation if needed

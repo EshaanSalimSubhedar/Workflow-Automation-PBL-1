@@ -1,0 +1,11 @@
+ID,Failure point,Cause / trigger,Resolution and BPMN construct
+E1,Pickup,Shipper absent or parcel not ready,"Error/escalation boundary; reschedule up to 2 attempts, then cancel and apply fee"
+E2,Address validation/delivery,Incomplete or incorrect address,Correct at booking; at delivery contact recipient and use exclusive gateway for surcharge
+E3,Damaged parcel,Damage found at hub/delivery,Inspect; exclusive gateway checks insurance; claims sub-process or notify shipper
+E4,Lost parcel,No scan for 48 hours,"Timer starts tracing; if not found within 5 days declare lost, compensate, notify customer"
+E5,Transit delay,"Weather, strike, breakdown, hub overload","Event-based gateway waits for delay message or timer; notify, reroute, update ETA"
+E6,Customs hold,Missing/incorrect documents,Request documents and wait up to 5 days; otherwise return to origin
+E7,Recipient unavailable,No one present at delivery address,Retry up to 3 attempts; depot hold 7 days; then return to sender
+E8,Refusal/COD failure,Recipient refuses or COD payment fails,Exclusive delivery-outcome gateway; return to sender and adjust charges
+E9,Tracking/scan failure,Scanner offline or record mismatch,Error boundary event; manual record update and reconciliation
+E10,Cancellation after dispatch,Shipper cancels in transit,"Message boundary event; stop movement, return parcel, compensate/refund less fee"
